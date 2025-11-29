@@ -44,6 +44,10 @@ echo Compiling Tests...
 cl /EHsc /std:c++17 %INCLUDES% /I src tests\test_kalman.cpp src\physics\KalmanFilter.cpp /Fe:build\test_kalman.exe
 if %errorlevel% neq 0 exit /b %errorlevel%
 
+echo Compiling EKF Tests...
+cl /EHsc /std:c++20 %INCLUDES% /I src tests\test_ekf.cpp src\physics\ExtendedKalmanFilter.cpp /Fe:build\test_ekf.exe /Fo%OUT_DIR%\
+if %errorlevel% neq 0 exit /b %errorlevel%
+
 if %ERRORLEVEL% EQU 0 (
     echo Build Successful! Run %OUT_DIR%\%EXE_NAME% or %OUT_DIR%\Sender.exe
 ) else (

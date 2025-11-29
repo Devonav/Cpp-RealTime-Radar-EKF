@@ -18,6 +18,9 @@ public:
   glm::vec2 GetPosition() const;
   glm::vec2 GetVelocity() const;
 
+  // Mahalanobis distance for gating (sensor fusion best practice)
+  float GetMahalanobisDistance(float measX, float measY) const;
+
 private:
   // 5D State vector: x, y, v, heading, turn_rate
   // We'll use glm::vec<5, float> if available, but GLM usually supports up to
@@ -42,13 +45,14 @@ private:
   float m_R[4]; // 2x2 for x,y measurements
 
   void MatrixMultiply(const float *A, const float *B, float *C, int r1, int c1,
-                      int c2);
-  void MatrixTranspose(const float *A, float *AT, int rows, int cols);
-  void MatrixAdd(const float *A, const float *B, float *C, int rows, int cols);
+                      int c2) const;
+  void MatrixTranspose(const float *A, float *AT, int rows, int cols) const;
+  void MatrixAdd(const float *A, const float *B, float *C, int rows,
+                 int cols) const;
   void MatrixSubtract(const float *A, const float *B, float *C, int rows,
-                      int cols);
-  bool MatrixInverse2x2(const float *A,
-                        float *invA); // Only need 2x2 inverse for S
+                      int cols) const;
+  bool MatrixInverse2x2(const float *A, float *invA)
+      const; // Only need 2x2 inverse for S
 };
 
 } // namespace aegis

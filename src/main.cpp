@@ -99,30 +99,62 @@ void DrawPPIScope(ImDrawList *draw_list, const ImVec2 &center, float radius,
     ImVec2 screenPos(center.x + pos.x * scale,
                      center.y - pos.y * scale); // Invert Y for screen
 
+    // Color-code by track state
+    ImU32 trackColor, textColor;
+    const char *statePrefix;
+    switch (track->GetState()) {
+    case aegis::TrackState::CONFIRMED:
+      trackColor = IM_COL32(0, 255, 0, 255); // Green (confirmed)
+      textColor = IM_COL32(0, 255, 0, 255);
+      statePrefix = "C";
+      break;
+    case aegis::TrackState::TENTATIVE:
+      trackColor = IM_COL32(255, 165, 0, 255); // Orange (tentative)
+      textColor = IM_COL32(255, 165, 0, 255);
+      statePrefix = "T";
+      break;
+    case aegis::TrackState::COASTING:
+      trackColor = IM_COL32(255, 255, 0, 255); // Yellow (coasting)
+      textColor = IM_COL32(255, 255, 0, 255);
+      statePrefix = "X";
+      break;
+    default:
+      trackColor = IM_COL32(128, 128, 128, 255); // Gray (unknown)
+      textColor = IM_COL32(128, 128, 128, 255);
+      statePrefix = "?";
+      break;
+    }
+
     // Draw History Trail
     const auto &history = track->GetHistory();
+    ImU32 trailColor = IM_COL32(0, 255, 0, 100);
     for (size_t i = 1; i < history.size(); ++i) {
       ImVec2 p1(center.x + history[i - 1].x * scale,
                 center.y - history[i - 1].y * scale);
       ImVec2 p2(center.x + history[i].x * scale,
                 center.y - history[i].y * scale);
-      draw_list->AddLine(p1, p2, IM_COL32(0, 255, 0, 150), 1.0f);
+      draw_list->AddLine(p1, p2, trailColor, 1.0f);
     }
 
-    // Draw Current Position (Blip)
-    draw_list->AddCircleFilled(screenPos, 4.0f, IM_COL32(255, 0, 0, 255));
+    // Draw Current Position (Blip) - color-coded by state
+    draw_list->AddCircleFilled(screenPos, 5.0f, trackColor);
 
-    // Draw ID
-    std::string idStr = "TRK " + std::to_string(track->GetId());
-    draw_list->AddText(ImVec2(screenPos.x + 5, screenPos.y + 5),
-                       IM_COL32(255, 255, 255, 255), idStr.c_str());
+    // Draw ID with state prefix
+    std::string idStr =
+        statePrefix + std::to_string(track->GetId()) + " (" +
+        std::to_string(track->GetHitCount()) + "/" +
+        std::to_string(track->GetMissCount()) + ")";
+    draw_list->AddText(ImVec2(screenPos.x + 8, screenPos.y + 8), textColor,
+                       idStr.c_str());
 
-    // Draw Velocity Vector
-    glm::vec2 vel = track->GetVelocity();
-    ImVec2 velEnd(screenPos.x + vel.x * scale * 10.0f,
-                  screenPos.y -
-                      vel.y * scale * 10.0f); // Scale velocity for visibility
-    draw_list->AddLine(screenPos, velEnd, IM_COL32(255, 255, 0, 200), 1.0f);
+    // Draw Velocity Vector (only for confirmed tracks)
+    if (track->GetState() == aegis::TrackState::CONFIRMED) {
+      glm::vec2 vel = track->GetVelocity();
+      ImVec2 velEnd(screenPos.x + vel.x * scale * 10.0f,
+                    screenPos.y -
+                        vel.y * scale * 10.0f); // Scale velocity for visibility
+      draw_list->AddLine(screenPos, velEnd, IM_COL32(255, 255, 0, 200), 1.5f);
+    }
   }
 
   // Draw Sweeping Line (Simulated)
@@ -266,33 +298,119 @@ int main(int, char **) {
     // 2. Track Table Window
     {
       ImGui::SetNextWindowPos(ImVec2(620, 10), ImGuiCond_FirstUseEver);
-      ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(550, 350), ImGuiCond_FirstUseEver);
       ImGui::Begin("Track Table");
 
-      if (ImGui::BeginTable("Tracks", 4,
-                            ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+      if (ImGui::BeginTable(
+              "Tracks", 6,
+              ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                  ImGuiTableFlags_ScrollY)) {
         ImGui::TableSetupColumn("ID");
+        ImGui::TableSetupColumn("State");
         ImGui::TableSetupColumn("Pos X");
         ImGui::TableSetupColumn("Pos Y");
         ImGui::TableSetupColumn("Velocity");
+        ImGui::TableSetupColumn("Hits/Misses");
         ImGui::TableHeadersRow();
 
         auto tracks = g_trackManager.GetTracks();
         for (const auto &track : tracks) {
           ImGui::TableNextRow();
+
+          // Color-code rows by state
+          ImVec4 rowColor;
+          const char *stateStr;
+          switch (track->GetState()) {
+          case aegis::TrackState::CONFIRMED:
+            rowColor = ImVec4(0.0f, 0.5f, 0.0f, 0.3f);
+            stateStr = "CONFIRMED";
+            break;
+          case aegis::TrackState::TENTATIVE:
+            rowColor = ImVec4(0.5f, 0.3f, 0.0f, 0.3f);
+            stateStr = "TENTATIVE";
+            break;
+          case aegis::TrackState::COASTING:
+            rowColor = ImVec4(0.5f, 0.5f, 0.0f, 0.3f);
+            stateStr = "COASTING";
+            break;
+          default:
+            rowColor = ImVec4(0.3f, 0.3f, 0.3f, 0.3f);
+            stateStr = "UNKNOWN";
+            break;
+          }
+          ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0,
+                                 ImGui::GetColorU32(rowColor));
+
           ImGui::TableSetColumnIndex(0);
           ImGui::Text("%d", track->GetId());
           ImGui::TableSetColumnIndex(1);
-          ImGui::Text("%.1f", track->GetPosition().x);
+          ImGui::Text("%s", stateStr);
           ImGui::TableSetColumnIndex(2);
-          ImGui::Text("%.1f", track->GetPosition().y);
+          ImGui::Text("%.1f", track->GetPosition().x);
           ImGui::TableSetColumnIndex(3);
+          ImGui::Text("%.1f", track->GetPosition().y);
+          ImGui::TableSetColumnIndex(4);
           glm::vec2 v = track->GetVelocity();
           float speed = std::sqrt(v.x * v.x + v.y * v.y);
           ImGui::Text("%.1f m/s", speed);
+          ImGui::TableSetColumnIndex(5);
+          ImGui::Text("%d/%d", track->GetHitCount(), track->GetMissCount());
         }
         ImGui::EndTable();
       }
+      ImGui::End();
+    }
+
+    // 3. Performance Metrics Window
+    {
+      ImGui::SetNextWindowPos(ImVec2(620, 370), ImGuiCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(550, 240), ImGuiCond_FirstUseEver);
+      ImGui::Begin("Performance Metrics");
+
+      // Update metrics before displaying
+      g_trackManager.UpdateMetrics();
+      const auto &metrics = g_trackManager.GetMetrics();
+
+      // Track Statistics
+      ImGui::Text("Track Statistics:");
+      ImGui::Separator();
+      ImGui::Text("Total Tracks:     %d", metrics.totalTracks);
+      ImGui::Text("  Confirmed:      %d (%.1f%%)", metrics.confirmedTracks,
+                  metrics.GetTrackPurity() * 100.0f);
+      ImGui::Text("  Tentative:      %d (%.1f%%)", metrics.tentativeTracks,
+                  metrics.GetFalseTrackRate() * 100.0f);
+      ImGui::Text("  Coasting:       %d", metrics.coastingTracks);
+
+      ImGui::Spacing();
+
+      // Association Metrics
+      ImGui::Text("Association Metrics:");
+      ImGui::Separator();
+      ImGui::Text("Total Plots:      %d", metrics.totalPlots);
+      ImGui::Text("Associated Plots: %d (%.1f%%)", metrics.associatedPlots,
+                  metrics.GetAssociationRate() * 100.0f);
+      ImGui::Text("New Tracks:       %d", metrics.newTracks);
+
+      ImGui::Spacing();
+
+      // Track Lifecycle
+      ImGui::Text("Track Lifecycle:");
+      ImGui::Separator();
+      ImGui::Text("Tracks Created:   %d", metrics.tracksCreated);
+      ImGui::Text("Tracks Deleted:   %d", metrics.tracksDeleted);
+
+      ImGui::Spacing();
+
+      // Positional Accuracy
+      ImGui::Text("Accuracy:");
+      ImGui::Separator();
+      if (metrics.positionErrorSamples > 0) {
+        ImGui::Text("Avg Position Error: %.2f m (n=%d)",
+                    metrics.avgPositionError, metrics.positionErrorSamples);
+      } else {
+        ImGui::Text("Avg Position Error: N/A");
+      }
+
       ImGui::End();
     }
 

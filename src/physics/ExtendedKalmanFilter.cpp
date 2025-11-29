@@ -224,9 +224,62 @@ glm::vec2 ExtendedKalmanFilter::GetVelocity() const {
   return glm::vec2(vx, vy);
 }
 
+float ExtendedKalmanFilter::GetMahalanobisDistance(float measX,
+                                                    float measY) const {
+  // Calculate innovation (measurement residual)
+  float y[2];
+  y[0] = measX - m_x[0]; // Innovation in x
+  y[1] = measY - m_x[1]; // Innovation in y
+
+  // Calculate Innovation Covariance: S = H * P * H^T + R
+  // H = [[1, 0, 0, 0, 0],
+  //      [0, 1, 0, 0, 0]]
+  float H[10];
+  std::memset(H, 0, 10 * sizeof(float));
+  H[0] = 1.0f; // H(0,0)
+  H[6] = 1.0f; // H(1,1)
+
+  // HP = H * P (2x5)
+  float HP[10];
+  MatrixMultiply(H, m_P, HP, 2, 5, 5);
+
+  // HT = H^T (5x2)
+  float HT[10];
+  MatrixTranspose(H, HT, 2, 5);
+
+  // HPHt = HP * HT (2x2)
+  float HPHt[4];
+  MatrixMultiply(HP, HT, HPHt, 2, 5, 2);
+
+  // S = HPHt + R (2x2)
+  float S[4];
+  MatrixAdd(HPHt, m_R, S, 2, 2);
+
+  // Invert S
+  float S_inv[4];
+  if (!MatrixInverse2x2(S, S_inv)) {
+    // If singular, return large distance (reject association)
+    return std::numeric_limits<float>::max();
+  }
+
+  // Compute Mahalanobis distance: d^2 = y^T * S^-1 * y
+  // First: S_inv * y (2x1)
+  float S_inv_y[2];
+  S_inv_y[0] = S_inv[0] * y[0] + S_inv[1] * y[1];
+  S_inv_y[1] = S_inv[2] * y[0] + S_inv[3] * y[1];
+
+  // Then: y^T * (S_inv * y) (scalar)
+  float mahalanobis_squared = y[0] * S_inv_y[0] + y[1] * S_inv_y[1];
+
+  // Return squared Mahalanobis distance
+  // (Easier to compare with chi-squared thresholds)
+  return mahalanobis_squared;
+}
+
 // --- Matrix Helpers ---
 void ExtendedKalmanFilter::MatrixMultiply(const float *A, const float *B,
-                                          float *C, int r1, int c1, int c2) {
+                                          float *C, int r1, int c1,
+                                          int c2) const {
   for (int i = 0; i < r1; ++i) {
     for (int j = 0; j < c2; ++j) {
       C[i * c2 + j] = 0;
@@ -238,7 +291,7 @@ void ExtendedKalmanFilter::MatrixMultiply(const float *A, const float *B,
 }
 
 void ExtendedKalmanFilter::MatrixTranspose(const float *A, float *AT, int rows,
-                                           int cols) {
+                                           int cols) const {
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
       AT[j * rows + i] = A[i * cols + j];
@@ -247,20 +300,20 @@ void ExtendedKalmanFilter::MatrixTranspose(const float *A, float *AT, int rows,
 }
 
 void ExtendedKalmanFilter::MatrixAdd(const float *A, const float *B, float *C,
-                                     int rows, int cols) {
+                                     int rows, int cols) const {
   for (int i = 0; i < rows * cols; ++i) {
     C[i] = A[i] + B[i];
   }
 }
 
 void ExtendedKalmanFilter::MatrixSubtract(const float *A, const float *B,
-                                          float *C, int rows, int cols) {
+                                          float *C, int rows, int cols) const {
   for (int i = 0; i < rows * cols; ++i) {
     C[i] = A[i] - B[i];
   }
 }
 
-bool ExtendedKalmanFilter::MatrixInverse2x2(const float *A, float *invA) {
+bool ExtendedKalmanFilter::MatrixInverse2x2(const float *A, float *invA) const {
   float det = A[0] * A[3] - A[1] * A[2];
   if (std::abs(det) < 1e-6)
     return false;
