@@ -140,15 +140,3 @@ The EKF test suite validates:
 ---
 
 
-
-## Future Enhancements (Potential Interview Discussion Points)
-
-1. **Global Nearest Neighbor (GNN)** with Hungarian algorithm for optimal multi-target assignment
-2. **Interacting Multiple Model (IMM)** filter combining CV, CA, and CT motion models
-3. **Track-to-track fusion** for multi-sensor correlation
-4. **OSPA (Optimal Sub-Pattern Assignment)** metric for comprehensive tracking performance
-5. **Adaptive noise estimation** using innovation statistics
-6. **JSON configuration system** for runtime parameter tuning
-7. **Comprehensive unit test suite** with Monte Carlo validation
-
----
