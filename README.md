@@ -139,61 +139,7 @@ The EKF test suite validates:
 
 ---
 
-## Why This Project Demonstrates Defense Industry Skills
 
-This project showcases technical competencies directly applicable to defense contractor roles at **Lockheed Martin**, **Northrop Grumman**, and **Raytheon**:
-
-### **1. Sensor Fusion & Tracking Algorithms**
-- **Mahalanobis distance gating** is the industry standard for multi-target tracking in radar, sonar, and EO/IR systems
-- **Extended Kalman Filters** are foundational to missile guidance, aircraft tracking, and autonomous vehicle navigation
-- **M-of-N confirmation logic** prevents false tracks in cluttered environments (missile defense, air traffic control)
-
-### **2. Real-Time Embedded Systems**
-- **Multi-threaded architecture** demonstrates understanding of real-time constraints
-- **Lock-free data structures** (thread-safe queues) are critical for low-latency sensor processing
-- **UDP networking** mirrors distributed sensor fusion architectures (networked radars, sensor grids)
-
-### **3. C++ Proficiency for Defense Systems**
-- **Modern C++20** features (smart pointers, RAII, templates) demonstrate best practices
-- **Manual matrix operations** show understanding of low-level math (critical when libraries like Eigen aren't available in embedded systems)
-- **Windows/DirectX integration** reflects experience with platform-specific APIs
-
-### **4. GUI Development for Operator Displays**
-- **DirectX 11 rendering** is used in military cockpit displays and ground control stations
-- **Plan Position Indicator (PPI)** is the standard radar display format
-- **Real-time metrics dashboards** mirror operational test & evaluation (OT&E) tools
-
-### **5. System Validation & Metrics**
-- **Performance metrics** (track purity, association rate) demonstrate test & evaluation methodology
-- **Ground truth comparison** shows experience with algorithm validation
-- **Positional accuracy tracking** mirrors DoD tracking performance standards
-
-### **Key Technical Terms for Resume:**
-- Extended Kalman Filter (EKF) for non-linear state estimation
-- Mahalanobis distance gating with innovation covariance
-- M-of-N track confirmation logic
-- Constant Turn Rate and Velocity (CTRV) motion model
-- Real-time multi-threaded sensor fusion
-- DirectX 11 hardware-accelerated visualization
-- UDP networked architecture
-- Track state machine (Tentative/Confirmed/Coasting)
-- Chi-squared validation gating
-- Thread-safe lock-free queues
-
----
-
-## Technical Highlights for Interviews
-
-**Q: "Describe a challenging technical problem you solved."**
-*"I implemented Mahalanobis distance gating to replace Euclidean distance in a radar tracking system. The challenge was computing the innovation covariance matrix S = H·P·Hᵀ + R in real-time while maintaining numerical stability. I optimized matrix operations and added singularity checks on the 2×2 inversion, reducing false associations by 40% in cluttered scenarios."*
-
-**Q: "How do you handle real-time constraints?"**
-*"In my radar tracker, I separated packet reception onto a dedicated thread to prevent UDP buffer overruns. The receiver pushes to a lock-free queue, and the main thread processes at 60 FPS. I use non-blocking TryPop() to ensure the GUI never stalls, even during processing spikes."*
-
-**Q: "Explain your experience with Kalman filtering."**
-*"I implemented a 5-state Extended Kalman Filter with a CTRV motion model for tracking maneuvering targets. The key challenge was deriving the Jacobian matrix for non-linear state propagation. I handle coordinated turns by propagating heading and turn rate, which significantly outperforms constant-velocity models for aircraft performing S-turns."*
-
----
 
 ## Future Enhancements (Potential Interview Discussion Points)
 
